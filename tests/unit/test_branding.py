@@ -18,7 +18,9 @@ from backend.app.reporting.branding import (
 def test_accent_colour_normalization():
     assert BrandProfile(accent_colour="ff00aa").accent_colour == "#ff00aa"
     assert BrandProfile(accent_colour="#abc").accent_colour == "#abc"
-    assert BrandProfile(accent_colour="").accent_colour == "#32c3e2"
+    assert BrandProfile(accent_colour="").accent_colour == "#235d45"
+    assert BrandProfile(muted_colour="").muted_colour == "#66615b"
+    assert BrandProfile(text_colour="112233").text_colour == "#112233"
 
 
 def test_pdf_footer_left_lines():

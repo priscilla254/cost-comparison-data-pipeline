@@ -23,14 +23,13 @@ REPORTING_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = REPORTING_DIR / "templates"
 OUTPUT_PATH = TEMPLATES_DIR / "Tender_Comparison_Template.docx"
 
-# Secondary heading colour (matches PDF slate tone).
-_SLATE = RGBColor(0x42, 0x56, 0x67)
 
-
-def _hex_to_rgb(hex_colour: str) -> RGBColor:
+def _hex_to_rgb(hex_colour: str, fallback: str = "1a1814") -> RGBColor:
     text = (hex_colour or "").strip().lstrip("#")
+    if len(text) == 3:
+        text = "".join(ch * 2 for ch in text)
     if len(text) != 6:
-        text = "32c3e2"
+        text = fallback
     return RGBColor(int(text[0:2], 16), int(text[2:4], 16), int(text[4:6], 16))
 
 
@@ -54,12 +53,14 @@ def _add_heading(doc: Document, text: str, font_family: str, colour: RGBColor, s
     return p
 
 
-def _add_subheading(doc: Document, text: str, font_family: str, size_pt: float = 11):
+def _add_subheading(
+    doc: Document, text: str, font_family: str, colour: RGBColor, size_pt: float = 11
+):
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(10)
     p.paragraph_format.space_after = Pt(4)
     run = p.add_run(text)
-    _set_run_font(run, font_family, size_pt, bold=True, colour=_SLATE)
+    _set_run_font(run, font_family, size_pt, bold=True, colour=colour)
     return p
 
 
@@ -83,7 +84,9 @@ def _add_label_value(doc: Document, label: str, placeholder: str, font_family: s
     return p
 
 
-def _configure_header_footer(doc: Document, brand, accent: RGBColor, font_family: str) -> None:
+def _configure_header_footer(
+    doc: Document, brand, accent: RGBColor, muted: RGBColor, font_family: str
+) -> None:
     section = doc.sections[0]
     section.top_margin = Mm(28)
     section.bottom_margin = Mm(28)
@@ -128,18 +131,21 @@ def _configure_header_footer(doc: Document, brand, accent: RGBColor, font_family
     lines = brand.pdf_footer_left_lines()
     if lines:
         run = left.add_run("\n".join(lines))
-        _set_run_font(run, font_family, 8, colour=_SLATE)
+        _set_run_font(run, font_family, 8, colour=muted)
 
     center = footer.add_paragraph()
     center.alignment = WD_ALIGN_PARAGRAPH.CENTER
     web_run = center.add_run(brand.website)
-    _set_run_font(web_run, font_family, 9, bold=True, colour=_SLATE)
+    _set_run_font(web_run, font_family, 9, bold=True, colour=accent)
 
 
 def build_template(output_path: Path | None = None) -> Path:
     brand = get_brand_profile()
     font_family = brand.font_family or "Arial"
+    heading_font = brand.heading_font_family or font_family
     accent = _hex_to_rgb(brand.accent_colour)
+    ink = _hex_to_rgb(brand.text_colour)
+    muted = _hex_to_rgb(brand.muted_colour)
     dest = output_path or OUTPUT_PATH
     dest.parent.mkdir(parents=True, exist_ok=True)
 
@@ -147,30 +153,31 @@ def build_template(output_path: Path | None = None) -> Path:
     style = doc.styles["Normal"]
     style.font.name = font_family
     style.font.size = Pt(10)
+    style.font.color.rgb = ink
     style._element.rPr.rFonts.set(qn("w:eastAsia"), font_family)
 
-    _configure_header_footer(doc, brand, accent, font_family)
+    _configure_header_footer(doc, brand, accent, muted, font_family)
 
     title = doc.add_paragraph()
     title.paragraph_format.space_after = Pt(8)
     title_run = title.add_run("Tender Comparison Report")
-    _set_run_font(title_run, font_family, 18, bold=True, colour=_SLATE)
+    _set_run_font(title_run, heading_font, 20, bold=True, colour=ink)
 
     _add_label_value(doc, "Project ID", "{{ project_id }}", font_family)
     _add_label_value(doc, "Project Name", "{{ project_name }}", font_family)
     _add_label_value(doc, "Location", "{{ project_location }}", font_family)
 
-    _add_heading(doc, "01 - Executive Summary", font_family, accent, size_pt=12)
+    _add_heading(doc, "01 - Executive Summary", heading_font, accent, size_pt=12)
     _add_body(doc, "{{ executive_summary }}", font_family)
 
-    _add_subheading(doc, "Project Information", font_family)
+    _add_subheading(doc, "Project Information", heading_font, ink)
     _add_label_value(doc, "Project Description", "{{ project_description }}", font_family)
     _add_label_value(doc, "Number of Responses", "{{ responses_count }}", font_family)
     _add_label_value(doc, "Tenders Issued", "{{ tenders_issued_date }}", font_family)
     _add_label_value(doc, "Tender Deadline", "{{ tender_deadline_date }}", font_family)
     _add_label_value(doc, "Addendums Issued", "{{ addendums_issued_count }}", font_family)
 
-    _add_subheading(doc, "Tender Review", font_family)
+    _add_subheading(doc, "Tender Review", heading_font, ink)
     _add_body(
         doc,
         "Item | {% for name in tender_review_contractors %}{{ name }} | {% endfor %}",
@@ -182,23 +189,23 @@ def build_template(output_path: Path | None = None) -> Path:
         font_family,
     )
 
-    _add_subheading(doc, "Recommendation", font_family)
+    _add_subheading(doc, "Recommendation", heading_font, ink)
     _add_body(doc, "{{ recommendation }}", font_family)
 
-    _add_subheading(doc, "Recommended Next Steps", font_family)
+    _add_subheading(doc, "Recommended Next Steps", heading_font, ink)
     _add_body(doc, "{% for step in next_steps %}- {{ step }}\n{% endfor %}", font_family)
 
-    _add_heading(doc, "02 - Introduction", font_family, accent, size_pt=12)
-    _add_subheading(doc, "Report Overview", font_family)
+    _add_heading(doc, "02 - Introduction", heading_font, accent, size_pt=12)
+    _add_subheading(doc, "Report Overview", heading_font, ink)
     _add_body(doc, "{{ introduction }}", font_family)
 
-    _add_subheading(doc, "Tenderer List", font_family)
+    _add_subheading(doc, "Tenderer List", heading_font, ink)
     _add_body(doc, "{% for name in tenderers %}- {{ name }}\n{% endfor %}", font_family)
 
-    _add_heading(doc, "03 - Commercial Analysis", font_family, accent, size_pt=12)
+    _add_heading(doc, "03 - Commercial Analysis", heading_font, accent, size_pt=12)
     _add_body(doc, "{{ commercial_analysis }}", font_family)
 
-    _add_subheading(doc, "Tender Comparison", font_family)
+    _add_subheading(doc, "Tender Comparison", heading_font, ink)
     _add_body(
         doc,
         "{% for row in tender_rows %}{{ row.contractor }} | {{ row.final_adjusted_tender_sum }}\n{% endfor %}",

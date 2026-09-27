@@ -17,6 +17,18 @@ Current backend capabilities:
 
 The ingestion flow supports uploaded files and local file testing only.
 
+### Sample report
+
+Tender comparison report generated from the fictional demo workbook (`sample_data/DEMO_Tender_Comparison_Workbook.xlsx`, project `DEMO-001`):
+
+![Sample tender comparison report](docs/images/sample_report.png)
+
+### Sample AI SQL Assistant query
+
+Natural-language question answered from the committed warehouse after ingesting the demo workbook (£3,257,750 selected tender ÷ 4,250 m² GIFA):
+
+![Sample AI SQL Assistant query](docs/images/sample_ai_query.png)
+
 ## Setup
 
 Create and activate a virtual environment from the repository root.
@@ -309,6 +321,8 @@ The React app includes a dedicated **AI QS Assistant** page where users can:
 - inspect generated SQL and returned rows
 - see a note when results are truncated
 
+See the [sample AI SQL Assistant query](#sample-ai-sql-assistant-query) for example output.
+
 ### Suggested query options
 
 Examples you can ask in AI QS Assistant (committed Dim/Fact data):
@@ -319,12 +333,17 @@ Examples you can ask in AI QS Assistant (committed Dim/Fact data):
 - Which projects have the highest grand total?
 - Compare measured works vs building works estimate by project.
 - Show cost per m2 by project (TotalCost / GIFA).
-- List locations and how many projects sit in each.
 - Show adjustment amounts by AdjCategory.
 
+Verified against the demo workbook (project `DEMO-001`):
+
+- What is the overall cost per m2 of GIFA for education projects?
+- Show the Level 2 element costs and cost per m2 for project DEMO-001
+- For education projects, what is the average substructure cost per m2 of GIFA? Substructure is a Level 1 element: sum its Level 2 costs per project, divide by GIFA, then average across projects.
+ 
 ## AI Report Draft Endpoint
 
-The backend includes a draft-report endpoint used by the frontend **AI Report Generation** page.
+The backend includes a draft-report endpoint used by the frontend **AI Report Generation** page. See the [sample report](#sample-report) for example output.
 
 ### Backend endpoint
 

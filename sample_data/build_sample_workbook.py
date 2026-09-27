@@ -92,9 +92,9 @@ def _write_project_information(wb: Workbook) -> None:
         ("GIFA", 4250),
         (
             "Notes",
-            "Fictional sample project for ingestion tests and Stage B demo. "
-            "SUMMARY first metric pair is Baseline Estimate; "
-            "variance = tender − Baseline Estimate.",
+            "Three-storey steel-framed extension to an existing further education "
+            "campus, adding 4,250 m² of teaching and learning space with new roof "
+            "coverings and external wall cladding.",
         ),
     ]
     for label, value in rows:

@@ -11,7 +11,7 @@
     body {
       font-family: "{{ font_family }}", Arial, sans-serif;
       background: #ffffff;
-      color: #000000;
+      color: {{ text_colour }};
       font-size: 10px;
       margin: 0;
     }
@@ -30,24 +30,34 @@
       width: auto;
       margin: 0;
     }
-    h1 { margin-bottom: 8px; color: #425667; font-weight: 700; font-size: 18px; }
-    h2 { margin-bottom: 8px; color: {{ accent_colour }}; font-weight: 700; font-size: 12px; }
-    h3 { margin-bottom: 8px; color: #425667; font-weight: 700; font-size: 11px; }
+    h1, h2, h3 { font-family: "{{ heading_font_family }}", Georgia, serif; font-weight: 600; }
+    h1 { margin-bottom: 8px; color: {{ text_colour }}; font-size: 20px; }
+    h2 {
+      margin-bottom: 8px;
+      color: {{ accent_colour }};
+      font-size: 13px;
+      border-bottom: 1px solid {{ surface_colour }};
+      padding-bottom: 4px;
+    }
+    h3 { margin-bottom: 8px; color: {{ text_colour }}; font-size: 11px; }
     p { line-height: 1.5; white-space: pre-wrap; }
+    strong { color: {{ text_colour }}; }
     ol { margin-top: 10px; margin-bottom: 14px; padding-left: 22px; }
     ol li { margin-bottom: 8px; line-height: 1.6; }
     ul { margin-top: 8px; margin-bottom: 20px; }
     ul li { margin-bottom: 6px; line-height: 1.5; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-    th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; color: #000000; }
-    th { background: #4f6577; color: {{ accent_colour }}; }
-    .tender-review-note { margin-top: 8px; font-style: italic; }
+    th, td { border: 1px solid #e3ded4; padding: 8px; text-align: left; color: {{ text_colour }}; }
+    th { background: {{ accent_colour }}; color: #fffcf7; font-weight: 700; }
+    tbody tr:nth-child(even) td { background: {{ surface_colour }}; }
+    th.num, td.num { text-align: right; white-space: nowrap; }
+    .tender-review-note { margin-top: 8px; font-style: italic; color: {{ muted_colour }}; }
     .pdf-footer {
       position: fixed;
       left: 12mm;
       right: 12mm;
       bottom: -24mm;
-      color: #334155;
+      color: {{ muted_colour }};
       font-size: 8px;
     }
     .pdf-footer-line {
@@ -72,7 +82,7 @@
       text-align: center;
       font-size: 10px;
       font-weight: 700;
-      color: #475569;
+      color: {{ accent_colour }};
     }
     .pdf-footer-right {
       text-align: right;
@@ -82,7 +92,7 @@
       display: inline-block;
       width: 40px;
       height: 0;
-      border-top: 10px solid #425667;
+      border-top: 10px solid {{ text_colour }};
       border-right: 8px solid transparent;
       vertical-align: middle;
       margin-right: 8px;
@@ -96,7 +106,7 @@
     .footer-page::before {
       content: "Page " counter(page) " of " counter(pages);
       font-size: 10px;
-      color: #334155;
+      color: {{ muted_colour }};
     }
   </style>
 </head>
@@ -130,18 +140,18 @@
     <thead>
       <tr>
         <th>Contractor</th>
-        <th>Final Adjusted Tender Sum</th>
-        <th>Deduct Construction Budget</th>
-        <th>Variance to Construction Budget</th>
+        <th class="num">Final Adjusted Tender Sum</th>
+        <th class="num">Deduct Construction Budget</th>
+        <th class="num">Variance to Construction Budget</th>
       </tr>
     </thead>
     <tbody>
       {% for row in tender_rows %}
       <tr>
         <td>{{ row.contractor }}</td>
-        <td>{{ row.final_adjusted_tender_sum }}</td>
-        <td>{{ row.construction_budget if row.construction_budget is defined else construction_budget }}</td>
-        <td>{{ row.variance_to_construction_budget if row.variance_to_construction_budget is defined else row.variance_to_budget }}</td>
+        <td class="num">{{ row.final_adjusted_tender_sum }}</td>
+        <td class="num">{{ row.construction_budget if row.construction_budget is defined else construction_budget }}</td>
+        <td class="num">{{ row.variance_to_construction_budget if row.variance_to_construction_budget is defined else row.variance_to_budget }}</td>
       </tr>
       {% endfor %}
     </tbody>

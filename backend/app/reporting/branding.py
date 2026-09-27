@@ -19,11 +19,18 @@ _DEFAULTS: dict = {
     "registration_number": "CN 00000000",
     "website": "example.com",
     "logo_path": "backend/app/reporting/assets/logos/company_logo.png",
-    "font_family": "Archivo",
-    "font_body_file": "Archivo_Expanded-Light.ttf",
-    "font_heading_file": "Archivo_Expanded-Bold.ttf",
-    "accent_colour": "#32c3e2",
+    "font_family": "DM Sans",
+    "font_body_file": "DMSans-Regular.ttf",
+    "font_body_bold_file": "DMSans-Bold.ttf",
+    "heading_font_family": "Fraunces",
+    "font_heading_file": "Fraunces-SemiBold.ttf",
+    "accent_colour": "#235d45",
+    "text_colour": "#1a1814",
+    "muted_colour": "#66615b",
+    "surface_colour": "#f4f1ea",
 }
+
+_COLOUR_FIELDS = ("accent_colour", "text_colour", "muted_colour", "surface_colour")
 
 
 class BrandProfile(BaseModel):
@@ -33,14 +40,19 @@ class BrandProfile(BaseModel):
     logo_path: str = Field(default=_DEFAULTS["logo_path"])
     font_family: str = Field(default=_DEFAULTS["font_family"])
     font_body_file: str = Field(default=_DEFAULTS["font_body_file"])
+    font_body_bold_file: str = Field(default=_DEFAULTS["font_body_bold_file"])
+    heading_font_family: str = Field(default=_DEFAULTS["heading_font_family"])
     font_heading_file: str = Field(default=_DEFAULTS["font_heading_file"])
     accent_colour: str = Field(default=_DEFAULTS["accent_colour"])
+    text_colour: str = Field(default=_DEFAULTS["text_colour"])
+    muted_colour: str = Field(default=_DEFAULTS["muted_colour"])
+    surface_colour: str = Field(default=_DEFAULTS["surface_colour"])
 
-    @field_validator("accent_colour", mode="before")
+    @field_validator(*_COLOUR_FIELDS, mode="before")
     @classmethod
-    def _normalize_accent(cls, value):
+    def _normalize_colour(cls, value, info):
         if value is None or str(value).strip() == "":
-            return _DEFAULTS["accent_colour"]
+            return _DEFAULTS[info.field_name]
         text = str(value).strip()
         if not text.startswith("#"):
             text = f"#{text}"
@@ -128,15 +140,26 @@ def _from_env() -> dict:
     if body:
         data["font_body_file"] = body
 
+    body_bold = os.getenv("BRAND_FONT_BODY_BOLD_FILE", "").strip()
+    if body_bold:
+        data["font_body_bold_file"] = body_bold
+
+    heading_family = os.getenv("BRAND_HEADING_FONT_FAMILY", "").strip()
+    if heading_family:
+        data["heading_font_family"] = heading_family
+
     heading = os.getenv("BRAND_FONT_HEADING_FILE", "").strip()
     if heading:
         data["font_heading_file"] = heading
 
-    accent = (
-        os.getenv("BRAND_ACCENT_COLOUR", "").strip() or os.getenv("BRAND_ACCENT_COLOR", "").strip()
-    )
-    if accent:
-        data["accent_colour"] = accent
+    for field in _COLOUR_FIELDS:
+        env_base = f"BRAND_{field.upper()}"
+        value = (
+            os.getenv(env_base, "").strip()
+            or os.getenv(env_base.replace("COLOUR", "COLOR"), "").strip()
+        )
+        if value:
+            data[field] = value
 
     return _coerce_legacy_footer(data)
 

@@ -58,6 +58,36 @@ def _to_docx_text(value: Any) -> str:
     return text.strip()
 
 
+_MONEY_KEYS = (
+    "initial_tender_sum",
+    "fixed_adjustments",
+    "risk_adjustments",
+    "final_adjusted_tender_sum",
+    "construction_budget",
+    "variance_to_construction_budget",
+    "variance_to_budget",
+)
+
+
+def _format_money(value: Any) -> str:
+    """Format a numeric amount as GBP (e.g. £3,257,750 or -£1,250.50); pass text through."""
+    if value is None or value == "":
+        return ""
+    try:
+        amount = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    decimals = 0 if amount == int(amount) else 2
+    formatted = f"£{abs(amount):,.{decimals}f}"
+    return f"-{formatted}" if amount < 0 else formatted
+
+
+def _format_tender_row(row: Any) -> Any:
+    if not isinstance(row, dict):
+        return row
+    return {key: _format_money(val) if key in _MONEY_KEYS else val for key, val in row.items()}
+
+
 def _clear_header_images(header) -> None:
     element = header._element
     for node in element.xpath('.//*[local-name()="drawing" or local-name()="pict"]'):
@@ -130,6 +160,7 @@ def _prepare_docx_context(payload: dict[str, Any]) -> dict[str, Any]:
     tender_rows = commercial.get("tender_comparison", [])
     if not isinstance(tender_rows, list):
         tender_rows = []
+    tender_rows = [_format_tender_row(row) for row in tender_rows]
     first_tender_row = tender_rows[0] if tender_rows else {}
     tenderers = tender_meta.get("tenderers", [])
     if not isinstance(tenderers, list):
@@ -137,7 +168,7 @@ def _prepare_docx_context(payload: dict[str, Any]) -> dict[str, Any]:
 
     contractor_names = [str(row.get("contractor") or "") for row in tender_rows]
     final_adjusted_values = [row.get("final_adjusted_tender_sum", 0) for row in tender_rows]
-    construction_budget = commercial.get("construction_budget", 0)
+    construction_budget = _format_money(commercial.get("construction_budget", 0))
     construction_budget_values = [construction_budget for _ in tender_rows]
     variance_values = [
         row.get("variance_to_construction_budget", row.get("variance_to_budget", 0))
@@ -183,28 +214,26 @@ def _pdf_jinja_env() -> Environment:
 
 
 def _build_font_face_css(brand: BrandProfile) -> str:
-    body = brand.font_body_file
-    heading = brand.font_heading_file
-    if not (FONTS_DIR / body).exists() or not (FONTS_DIR / heading).exists():
-        return ""
     # Trusted brand-controlled font paths only — marked safe in template.
-    family = brand.font_family.replace('"', "")
-    body_safe = body.replace('"', "")
-    heading_safe = heading.replace('"', "")
-    return f"""
+    faces = [
+        (brand.font_family, brand.font_body_file, 400),
+        (brand.font_family, brand.font_body_bold_file, 700),
+        (brand.heading_font_family, brand.font_heading_file, 600),
+    ]
+    blocks = []
+    for family, file_name, weight in faces:
+        if not file_name or not (FONTS_DIR / file_name).exists():
+            continue
+        blocks.append(
+            f"""
     @font-face {{
-      font-family: "{family}";
-      src: url("assets/fonts/{body_safe}") format("truetype");
-      font-weight: 400;
+      font-family: "{family.replace('"', "")}";
+      src: url("assets/fonts/{file_name.replace('"', "")}") format("truetype");
+      font-weight: {weight};
       font-style: normal;
-    }}
-    @font-face {{
-      font-family: "{family}";
-      src: url("assets/fonts/{heading_safe}") format("truetype");
-      font-weight: 700;
-      font-style: normal;
-    }}
-"""
+    }}"""
+        )
+    return "".join(blocks)
 
 
 class ReportExporter(ABC):
@@ -265,7 +294,11 @@ class PdfExporter(ReportExporter):
         return template.render(
             **context,
             font_family=brand.font_family,
+            heading_font_family=brand.heading_font_family,
             accent_colour=brand.accent_colour,
+            text_colour=brand.text_colour,
+            muted_colour=brand.muted_colour,
+            surface_colour=brand.surface_colour,
             font_face_css=_build_font_face_css(brand),
             logo_src=logo_src,
             footer_lines=brand.pdf_footer_left_lines(),
