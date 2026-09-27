@@ -1,21 +1,12 @@
-# cost-benchmarking-poc
+# Cost Comparison Data Pipeline
 
-POC scaffold for a React frontend, FastAPI backend, Excel ingestion engine, and database assets.
+An end-to-end data pipeline that turns messy Excel tender-comparison workbooks into a validated SQL Server warehouse, with a guarded natural-language SQL assistant and automated report generation on top.
 
 ## Overview
 
-This repository is structured so the backend API can be built first, with the frontend added on top once the ingestion and batch-reporting endpoints are stable.
+Construction cost consultants compare contractor tenders against an independent budget estimate, spread across Excel workbooks with inconsistent layouts and manual copy-paste. This project replaces that with a pipeline that ingests a workbook, validates and stages every row, commits it into a proper star-schema warehouse, and then exposes that data through three consumer layers: an AI assistant that answers questions in plain English, a Power BI-ready reporting layer, and an automated Word/PDF report generator.
 
-Current backend capabilities:
-
-- upload an Excel workbook for ingestion
-- create and track a load batch
-- return batch summary and validation errors
-- download validation errors as CSV
-- ask natural-language database questions via GROQ AI SQL Assistant
-- generate and export AI tender comparison report drafts (Word/PDF)
-
-The ingestion flow supports uploaded files and local file testing only.
+It was built as a proof of concept while working as a data scientist, to explore how a business's ad-hoc Excel process could become a real, testable, deployable system — from raw file upload to a governed data warehouse.
 
 ### Sample report
 
@@ -28,6 +19,39 @@ Tender comparison report generated from the fictional demo workbook (`sample_dat
 Natural-language question answered from the committed warehouse after ingesting the demo workbook (£3,257,750 selected tender ÷ 4,250 m² GIFA):
 
 ![Sample AI SQL Assistant query](docs/images/sample_ai_query.png)
+
+## What this demonstrates
+
+- **Backend:** FastAPI, with a validated, testable Excel-ingestion engine built as composable, type-hinted classes (readers, normalizers, stagers, a commit pipeline) rather than one monolithic script.
+- **Database design:** a SQL Server star schema (`dbo.Dim*` / `dbo.Fact*`), reached via idempotent, checksum-tracked migrations, with an explicit staging layer (`stg.*`) separating raw upload from committed, trusted data.
+- **AI integration, done safely:** a natural-language-to-SQL assistant (Groq) protected by a real sqlglot-based guard — parsed as T-SQL, restricted to `SELECT` only, allow-listed to warehouse tables, row-capped, and executed under a dedicated read-only SQL login with no fallback to a higher-privilege connection.
+- **Frontend:** React + TypeScript in strict mode, with a typed API layer and component tests (Vitest + Testing Library).
+- **Testing:** unit, characterization (snapshot) and integration tests, the last running the full pipeline against a real SQL Server in Docker or CI; unit and characterization tests alone give 86% line coverage on the ingestion engine.
+- **Infrastructure:** a single Docker Compose stack (SQL Server, FastAPI backend with ODBC Driver 18, nginx-served frontend) and a GitHub Actions CI pipeline running lint, type-checks, and integration tests on every push to `main` and every pull request.
+
+## Architecture
+
+```text
+Excel workbook
+   │ upload
+   ▼
+Validation & staging (stg.*) ──▶ validation errors (CSV / JSON)
+   │ commit (idempotent, upsert on ProjectID + Contractor + CostStage)
+   ▼
+Warehouse (dbo.Dim* / dbo.Fact*)
+   │
+   ├──▶ AI SQL Assistant (guarded, read-only, natural language → SQL)
+   ├──▶ Power BI (dbo.vw_BI_* views, dedicated read-only login)
+   └──▶ AI Report Draft (Word / PDF export)
+```
+
+The warehouse is the single source of truth all three consumer paths read from — nothing downstream ever touches staging directly except the report drafter, which reads the latest batch for a project while it's still being finalized.
+
+---
+
+## Full setup & reference
+
+Everything below is for running the project locally or extending it: environment setup, Docker, migrations, CI, the AI SQL Assistant, Power BI, and the API reference.
 
 ## Setup
 
