@@ -163,25 +163,7 @@ def _fetch_tenderer_review_rows(load_batch_id: str) -> list[dict[str, Any]]:
         rows = module_db(connection_factory=get_connection).fetch_all(sql, (load_batch_id,))
         return rows if isinstance(rows, list) else []
     except Exception:
-        # Older DBs may still expose VarianceToCostplan.
-        sql_legacy = """
-            SELECT
-                TendererName,
-                FinalAdjustedTenderSum,
-                VarianceToCostplan AS VarianceToBudget,
-                ConstructionBudget,
-                IsSelected
-            FROM stg.ProjectTenderer
-            WHERE LoadBatchID = ?
-            ORDER BY RowNum ASC, StageProjectTendererID ASC
-        """
-        try:
-            rows = module_db(connection_factory=get_connection).fetch_all(
-                sql_legacy, (load_batch_id,)
-            )
-            return rows if isinstance(rows, list) else []
-        except Exception:
-            return []
+        return []
 
 
 def _fetch_level2_rows(load_batch_id: str) -> list[dict[str, Any]]:
@@ -315,7 +297,7 @@ def _populate_context_from_staging(
         if not contractor_name:
             continue
         final_adjusted = _as_float(row.get("FinalAdjustedTenderSum"))
-        variance_to_budget = _as_float(row.get("VarianceToBudget", row.get("VarianceToCostplan")))
+        variance_to_budget = _as_float(row.get("VarianceToBudget"))
         construction_budget = _as_float(row.get("ConstructionBudget"))
         if construction_budget_from_summary is None and construction_budget:
             construction_budget_from_summary = construction_budget

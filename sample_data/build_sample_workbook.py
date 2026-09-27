@@ -1,12 +1,12 @@
 """
-Build an anonymised sample Costplan-style tender workbook for tests and demos.
+Build an anonymised sample tender comparison workbook for tests and demos.
 
 Matches real template shape:
 - Project Information - 1 / 2 / 3 aliases
-- SUMMARY: first Rate/Total pair is Costplan, then each tenderer
-- Variance from Costplan = Final Adjusted − Costplan budget (workbook header;
-  engine also accepts "Variance to Budget"; staged as VarianceToBudget)
-- Level 3 sheets carry Costplan + all contractor Qty/Unit/Rate/Total blocks
+- SUMMARY: first Rate/Total pair is Baseline Estimate, then each tenderer
+- Variance from Baseline Estimate = Final Adjusted − Baseline Estimate budget
+  (workbook header; engine also accepts "Variance to Budget"; staged as VarianceToBudget)
+- Level 3 sheets carry Baseline Estimate + all contractor Qty/Unit/Rate/Total blocks
 
 Output: sample_data/DEMO_Tender_Comparison_Workbook.xlsx
 """
@@ -18,7 +18,7 @@ from openpyxl import Workbook
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "sample_data" / "DEMO_Tender_Comparison_Workbook.xlsx"
 
-COSTPLAN = "Costplan"
+BASELINE = "Baseline Estimate"
 SELECTED = "Apex Build Ltd"
 TENDERERS = [
     SELECTED,
@@ -32,7 +32,7 @@ CONTRACTOR_LABELS = [
 ]
 
 # Per L2 element: (ref, name, is_l1,
-#   costplan_rate, costplan_total,
+#   baseline_rate, baseline_total,
 #   apex_rate, apex_total,
 #   horizon_rate, horizon_total,
 #   meridian_rate, meridian_total)
@@ -52,7 +52,7 @@ SUMMARY_ROWS = [
 
 def _party_l2_total(party_index: int) -> int:
     """
-    party_index: 0=Costplan, 1=Apex, 2=Horizon, 3=Meridian
+    party_index: 0=Baseline Estimate, 1=Apex, 2=Horizon, 3=Meridian
     """
     total = 0
     for row in SUMMARY_ROWS:
@@ -93,7 +93,8 @@ def _write_project_information(wb: Workbook) -> None:
         (
             "Notes",
             "Fictional sample project for ingestion tests and Stage B demo. "
-            "SUMMARY first metric pair is Costplan; variance = tender − Costplan.",
+            "SUMMARY first metric pair is Baseline Estimate; "
+            "variance = tender − Baseline Estimate.",
         ),
     ]
     for label, value in rows:
@@ -122,12 +123,12 @@ def _write_element_quants(wb: Workbook) -> None:
 
 def _write_summary(wb: Workbook) -> None:
     ws = wb.create_sheet("SUMMARY")
-    # First Rate/Total pair = Costplan, then each tenderer (matches true template).
+    # First Rate/Total pair = Baseline Estimate, then each tenderer (matches true template).
     ws.append(
         [
             "Ref",
             "Element",
-            COSTPLAN,
+            BASELINE,
             None,
             SELECTED,
             None,
@@ -155,19 +156,19 @@ def _write_summary(wb: Workbook) -> None:
         ) = row
         ws.append([ref, name, cp_rate, cp_total, a_rate, a_total, h_rate, h_total, m_rate, m_total])
 
-    costplan_budget = _party_l2_total(0)
+    baseline_budget = _party_l2_total(0)
     apex_final = _party_l2_total(1)
     horizon_final = _party_l2_total(2)
     meridian_final = _party_l2_total(3)
 
     ws.append([])
-    # Costplan column shows the budget; tenderer columns show final adjusted sums.
+    # Baseline Estimate column shows the budget; tenderer columns show final adjusted sums.
     ws.append(
         [
             "",
             "Total Tender Sum (Final Adjusted)",
             None,
-            costplan_budget,
+            baseline_budget,
             None,
             apex_final,
             None,
@@ -176,19 +177,19 @@ def _write_summary(wb: Workbook) -> None:
             meridian_final,
         ]
     )
-    # Variance from Costplan = Final Adjusted − Costplan budget (engine label match).
+    # Variance from Baseline Estimate = Final Adjusted − baseline budget (engine label match).
     ws.append(
         [
             "",
-            "Variance from Costplan",
+            "Variance from Baseline Estimate",
             None,
             0,
             None,
-            apex_final - costplan_budget,
+            apex_final - baseline_budget,
             None,
-            horizon_final - costplan_budget,
+            horizon_final - baseline_budget,
             None,
-            meridian_final - costplan_budget,
+            meridian_final - baseline_budget,
         ]
     )
 
@@ -205,14 +206,14 @@ def _write_l3_sheet(
 ) -> None:
     """
     lines: each dict has description plus metric blocks for
-    costplan / apex / horizon / meridian as (qty, unit, rate, total).
+    baseline / apex / horizon / meridian as (qty, unit, rate, total).
 
-    Layout mirrors the true template: Costplan first, then every tenderer.
+    Layout mirrors the true template: Baseline Estimate first, then every tenderer.
     Spacer columns keep contractor labels outside neighbouring probe windows
     used by ingestion when choosing the selected-contractor block.
     """
     ws = wb.create_sheet(f"{code} {name}")
-    parties = [COSTPLAN, *TENDERERS]
+    parties = [BASELINE, *TENDERERS]
 
     header_parties: list = [None, None]
     metric_header: list = ["Item", "Description"]
@@ -224,7 +225,7 @@ def _write_l3_sheet(
 
     for line in lines:
         row: list = [None, line["description"]]
-        for party in ("costplan", "apex", "horizon", "meridian"):
+        for party in ("baseline", "apex", "horizon", "meridian"):
             qty, unit, rate, total = line[party]
             row.extend(_metric_block(qty, unit, rate, total))
             row.extend([None, None])
@@ -248,35 +249,35 @@ def build() -> Path:
         [
             {
                 "description": "Excavate for foundations",
-                "costplan": (1200, "m2", 42, 50400),
+                "baseline": (1200, "m2", 42, 50400),
                 "apex": (1200, "m2", 45, 54000),
                 "horizon": (1200, "m2", 48, 57600),
                 "meridian": (1200, "m2", 46, 55200),
             },
             {
                 "description": "Concrete strip foundations",
-                "costplan": (180, "m3", 160, 28800),
+                "baseline": (180, "m3", 160, 28800),
                 "apex": (180, "m3", 165, 29700),
                 "horizon": (180, "m3", 170, 30600),
                 "meridian": (180, "m3", 168, 30240),
             },
             {
                 "description": "Hardcore and blinding",
-                "costplan": (1200, "m2", 26, 31200),
+                "baseline": (1200, "m2", 26, 31200),
                 "apex": (1200, "m2", 28, 33600),
                 "horizon": (1200, "m2", 30, 36000),
                 "meridian": (1200, "m2", 29, 34800),
             },
             {
                 "description": "Heading - Ground slab",
-                "costplan": (None, None, None, None),
+                "baseline": (None, None, None, None),
                 "apex": (None, None, None, None),
                 "horizon": (None, None, None, None),
                 "meridian": (None, None, None, None),
             },
             {
                 "description": "Reinforced ground slab",
-                "costplan": (1200, "m2", 90, 108000),
+                "baseline": (1200, "m2", 90, 108000),
                 "apex": (1200, "m2", 95, 114000),
                 "horizon": (1200, "m2", 98, 117600),
                 "meridian": (1200, "m2", 96, 115200),
@@ -290,28 +291,28 @@ def build() -> Path:
         [
             {
                 "description": "Steel frame supply and erect",
-                "costplan": (185, "t", 2700, 499500),
+                "baseline": (185, "t", 2700, 499500),
                 "apex": (185, "t", 2800, 518000),
                 "horizon": (185, "t", 2950, 545750),
                 "meridian": (185, "t", 2850, 527250),
             },
             {
                 "description": "Secondary steelwork",
-                "costplan": (42, "t", 3000, 126000),
+                "baseline": (42, "t", 3000, 126000),
                 "apex": (42, "t", 3100, 130200),
                 "horizon": (42, "t", 3200, 134400),
                 "meridian": (42, "t", 3150, 132300),
             },
             {
                 "description": "Fire protection to steel",
-                "costplan": (4250, "m2", 17, 72250),
+                "baseline": (4250, "m2", 17, 72250),
                 "apex": (4250, "m2", 18, 76500),
                 "horizon": (4250, "m2", 19, 80750),
                 "meridian": (4250, "m2", 18.5, 78625),
             },
             {
                 "description": "Holding-down bolts and baseplates",
-                "costplan": (64, "nr", 210, 13440),
+                "baseline": (64, "nr", 210, 13440),
                 "apex": (64, "nr", 220, 14080),
                 "horizon": (64, "nr", 230, 14720),
                 "meridian": (64, "nr", 225, 14400),
@@ -322,14 +323,14 @@ def build() -> Path:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     wb.save(OUTPUT)
 
-    costplan_budget = _party_l2_total(0)
+    baseline_budget = _party_l2_total(0)
     print(
-        "Costplan budget:",
-        costplan_budget,
+        "Baseline Estimate budget:",
+        baseline_budget,
         "| Apex final:",
         _party_l2_total(1),
         "| Apex variance:",
-        _party_l2_total(1) - costplan_budget,
+        _party_l2_total(1) - baseline_budget,
     )
     return OUTPUT
 

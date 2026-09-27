@@ -86,9 +86,7 @@ class ProjectTendererStager(SheetStager):
                     continue
                 summary_totals_by_label[label.casefold()] = {
                     "FinalAdjustedTenderSum": to_decimal(row.get("FinalAdjustedTenderSum")),
-                    "VarianceToBudget": to_decimal(
-                        row.get("VarianceToBudget", row.get("VarianceToCostplan"))
-                    ),
+                    "VarianceToBudget": to_decimal(row.get("VarianceToBudget")),
                     "ConstructionBudget": to_decimal(row.get("ConstructionBudget")),
                 }
 
@@ -109,7 +107,6 @@ class ProjectTendererStager(SheetStager):
         tenderer_decimal_cols = (
             "FinalAdjustedTenderSum",
             "VarianceToBudget",
-            "VarianceToCostplan",
             "ConstructionBudget",
         )
 
@@ -130,8 +127,6 @@ class ProjectTendererStager(SheetStager):
                     mapped["FinalAdjustedTenderSum"] = totals.get("FinalAdjustedTenderSum")
                 if "VarianceToBudget" in table_columns:
                     mapped["VarianceToBudget"] = totals.get("VarianceToBudget")
-                elif "VarianceToCostplan" in table_columns:
-                    mapped["VarianceToCostplan"] = totals.get("VarianceToBudget")
                 if "ConstructionBudget" in table_columns:
                     mapped["ConstructionBudget"] = totals.get("ConstructionBudget")
 

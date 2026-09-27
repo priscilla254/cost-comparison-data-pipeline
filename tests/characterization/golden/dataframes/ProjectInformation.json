@@ -17,7 +17,7 @@
     "HorizontalExtension": "Yes",
     "LocationLabel": "North West",
     "NewBuild": "Yes",
-    "Notes": "Fictional sample project for ingestion tests and Stage B demo. SUMMARY first metric pair is Costplan; variance = tender \u2212 Costplan.",
+    "Notes": "Fictional sample project for ingestion tests and Stage B demo. SUMMARY first metric pair is Baseline Estimate; variance = tender \u2212 Baseline Estimate.",
     "ProgrammeLengthInWeeks": 78,
     "ProgrammeType": "Traditional",
     "ProjectID": "DEMO-001",

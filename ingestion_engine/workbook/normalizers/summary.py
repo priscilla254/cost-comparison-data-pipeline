@@ -240,7 +240,7 @@ def extract_summary_tenderer_totals(raw_df: pd.DataFrame) -> list[dict[str, obje
         if variance_row is None and (
             "variancetobudget" in token
             or "variancefrombudget" in token
-            or "variancefromcostplan" in token
+            or "variancefrombaselineestimate" in token
         ):
             variance_row = i
     if final_adjusted_row is None and variance_row is None:

@@ -223,14 +223,6 @@ BEGIN
 END;
 GO
 
--- Rename legacy VarianceToCostplan -> VarianceToBudget when upgrading existing DBs.
-IF COL_LENGTH('stg.ProjectTenderer', 'VarianceToCostplan') IS NOT NULL
-   AND COL_LENGTH('stg.ProjectTenderer', 'VarianceToBudget') IS NULL
-BEGIN
-    EXEC sp_rename 'stg.ProjectTenderer.VarianceToCostplan', 'VarianceToBudget', 'COLUMN';
-END;
-GO
-
 IF COL_LENGTH('stg.ProjectTenderer', 'FinalAdjustedTenderSum') IS NULL
    AND OBJECT_ID('stg.ProjectTenderer', 'U') IS NOT NULL
 BEGIN
