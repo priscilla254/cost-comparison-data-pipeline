@@ -1,0 +1,44 @@
+__pycache__/
+*.pyc
+.venv/
+env/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.DS_Store
+Thumbs.db
+
+# Frontend dependencies / TypeScript incremental build cache
+node_modules/
+frontend/node_modules/
+*.tsbuildinfo
+
+# Data
+test_data/
+outputs/
+artifacts/
+*.log
+*.xlsx
+!sample_data/*.xlsx
+backend/app/templates/
+test.pdf
+
+# Runtime artifacts (drafts / DOCX / PDF exports) — override with DATA_DIR
+/data/
+
+# Reporting package assets (templates stay in-repo; generated Word templates ignored)
+backend/app/reporting/assets/logos/*
+!backend/app/reporting/assets/logos/.gitkeep
+backend/app/reporting/templates/*.docx
+
+# Secrets
+venv/
+.env
+.env.docker
+*.key
+*.pem
+
+# Local brand identity (use branding.example.yaml as the template)
+/branding.yaml
